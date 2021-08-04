@@ -1,0 +1,76 @@
+---
+title: "Final Project"
+output: github_document
+name: "Samir Fidai"
+always_allow_html: TRUE
+---
+
+For the first stage of the final project, I aim to make an interactive map in R using brewery coordinates from the Open Brewery API. 
+
+```{r include=FALSE}
+library(tidyverse)
+library(rvest)
+library(httr)
+library(jsonlite)
+library(leaflet)
+library(broom)
+```
+
+
+
+In this chunk, I connected to the API, limited my search to just microbreweries, and filtered out all values that did not have a latitude and a longitude. I used a map to create a list of all 84 pages of the API
+
+```{r}
+breweries_list <- 1:84 %>% map(function(page) {
+  url <- paste0("https://api.openbrewerydb.org/breweries?by_type=micro",
+         "&per_page=50&page=",
+         page)
+  
+  url %>%
+    fromJSON()%>%
+    filter(!is.na(latitude), !is.na(longitude))
+  
+})
+
+```
+
+
+In this chunk, I combined all of the elements in the list into a single dataframe consisting of all microbreweries with latitudes and longitutdes. I also converted latitude and longitude to numeric. breweries_data_30 was 30 micobreweries I used to test the initial leaflet map
+
+
+```{r}
+breweries_data <- as.data.frame(do.call(rbind, breweries_list))
+
+breweries_data <- breweries_data %>%
+  mutate(latitude = as.numeric(latitude),
+         longitude = as.numeric(longitude))
+
+breweries_data_30 <- breweries_data %>% head(n=30) %>%
+  select(name, latitude, longitude)
+```
+
+
+In this chunk I create the map using the leaflet package. It is interactive. 
+
+```{r}
+map <- leaflet(breweries_data) %>%
+  addTiles() %>%
+  addMarkers(~breweries_data$longitude, ~breweries_data$latitude,
+             popup = breweries_data$name,
+             clusterOptions = markerClusterOptions())
+map
+```
+
+This Concludes Part One of the Project. 
+
+
+
+
+
+
+
+
+
+
+
+
