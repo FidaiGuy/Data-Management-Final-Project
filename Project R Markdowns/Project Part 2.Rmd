@@ -1,0 +1,136 @@
+---
+title: "Final Project Part 2"
+output: github_document
+name: "Samir Fidai"
+always_allow_html: TRUE
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(janitor)
+library(rvest)
+library(lubridate)
+```
+
+
+In this chunk, we scrape the dataset from Wikipedia. 
+
+```{r}
+url <- "https://en.wikipedia.org/wiki/List_of_Falcon_9_first-stage_boosters#Block_5"
+
+wiki_page <- read_html(url)
+
+BlockFive_dirty <- wiki_page %>%
+  html_elements("table") %>%
+  .[[1]] %>%
+  html_table()
+
+BlockFive_dirty
+
+```
+
+Using the janitor package, I made the column names cleaner and renamed launch date.
+
+```{r}
+BlockFive_clean <- BlockFive_dirty %>%
+  clean_names() 
+BlockFive_clean <- BlockFive_clean %>%  rename(`launch date` = `launch_date_utc_7`)
+  
+BlockFive_clean
+
+```
+
+
+
+
+
+
+
+Using the Lubridate Package to add in the dates, also the launches are now a numeric value
+```{r}
+BlockFive_clean <- BlockFive_clean %>% 
+  mutate(`launch date` = str_extract(`launch date`, "[0-9]{1,2}[:space:]{1}[A-Z]{1}[a-z]*[:space:][0-9]{4}"),
+         `launch date` = dmy(`launch date`),
+         launches = as.numeric(launches))
+```
+
+
+In this chunk, the flight number has been trimmed to get rid of any unwanted values. 
+```{r}
+BlockFive_clean <- BlockFive_clean %>%
+  rename(`flight num` = flight_no_b) %>%
+  mutate(`flight num` = str_extract(`flight num`, "[F]{1}[9H]{1}[-]{1}[0-9x]{3}"))
+```
+
+
+
+
+In this chunk, the turn around time for the boosters have been trimmed down using str_extract,
+and have been converted to a numeric value
+```{r}
+BlockFive_clean <- BlockFive_clean %>%
+  mutate(turnaround_time = str_extract(turnaround_time, "[0-9]*"),
+         turnaround_time = as.numeric(turnaround_time))
+```
+
+
+launch_pad was split into two categories; one for the outcome of the launch and the other for the name of the launchpad. 
+```{r}
+BlockFive_clean <- BlockFive_clean %>%
+  mutate(`launch outcome` = str_extract(launch_pad, "[A-Za-z]*"),
+         `launch pad` = str_extract(launch_pad, "[0-9]{1,2}[AE]?")) %>%
+  select(-launch_pad)
+```
+
+In this chunk, landing outcome was split into 2 categories, one for the outcome of the landing and the other for where the rocket booster landed. 
+
+```{r}
+BlockFive_clean <- BlockFive_clean %>%
+  mutate(`landing outcome` = str_extract(landing_location, "[A-Za-z]*"),
+         `landing site` = str_extract(landing_location, "(?<=\\()[A-Z]*[-]?[0-9]*")) %>%
+  select(-landing_location)
+```
+
+
+To conclude Part 2, we will make a bar graph using ggplot2 of launch sites
+
+```{r}
+
+BlockFive_clean %>%
+  filter(!is.na(`launch pad`)) %>%
+  ggplot(aes(`launch pad`)) +
+  geom_bar(stat = "count", fill = "white") +
+  coord_flip() +
+  theme_dark() +
+  ggtitle("Launch Sites used by Facon 9 Block 5 Boosters")
+
+
+```
+
+This concludes Part 2 of the Project.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
